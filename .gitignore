@@ -1,0 +1,36 @@
+# Crystal
+/docs/        # output de `crystal docs` — on commit `doc/` (singulier) à la place
+/lib/
+/.shards/
+*.dwarf
+
+# Binaires compilés (jamais commités, cf. memory feedback_binaries_no_push)
+# Note : git ne peut pas ré-inclure un fichier dont le parent est exclu en bloc.
+# Donc on exclut le CONTENU de `/bin/` (avec `*`) et on ré-inclut explicitement
+# `bin/init` — sinon `!bin/init` est sans effet (le répertoire est filtré avant).
+/bin/*
+!/bin/init
+
+# Editor / OS
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Couverture / profilage
+/coverage/
+
+# Fixtures temporaires
+*.tmp
+/tmp/
+/spec/tmp/
+
+# surcharge de dépendances pour le développement local
+shard.override.yml
+
+# TEMPORAIRE — à retirer dès que jose v0.2.0 est publié sur
+# aloli-crystal/jose. Tant que la dépendance est résolue via
+# shard.override.yml (path: ../jose), le lock enregistre ce chemin local et
+# n'est utilisable par personne d'autre, CI comprise.
+/shard.lock

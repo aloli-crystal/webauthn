@@ -1,0 +1,45 @@
+= Changelog
+:toc: left
+:toc-title: Versions
+
+All notable changes to `aloli-crystal/webauthn` are documented
+here. The format follows
+https://keepachangelog.com/1.1.0/[Keep a Changelog] and
+versioning follows https://semver.org/[SemVer]
+(3-digit for creations, 4-digit for ports of Ruby gems).
+
+== v0.1.0 — 2026-09-25
+
+=== Added
+
+* `WebAuthn::CBOR` — decoder for the CBOR subset WebAuthn uses (RFC 8949):
+  integers, byte and text strings, arrays, maps, and the three named simple
+  values. Values are returned as `CBOR::Any`, a named struct with
+  `JSON::Any`-style accessors rather than a recursive alias.
+* `WebAuthn::COSE` — COSE_Key decoding (RFC 8152) for EC2 (ES256/384/512) and
+  RSA (RS256/384/512), mapped onto `jose` keys, with signature verification.
+  ECDSA signatures are taken in ASN.1 DER, as CTAP authenticators emit them.
+
+=== Security posture
+
+The CBOR decoder parses attacker-reachable input and is strict on purpose:
+
+* indefinite lengths, tags and floats are refused, not skipped;
+* a declared length larger than the remaining input is refused before any
+  allocation, so a byte string claiming 4 GB cannot be used to exhaust memory;
+* duplicate map keys are refused — they let an attacker show one value to one
+  parser and another to the next;
+* nesting is capped, so a hostile payload cannot exhaust the stack;
+* trailing bytes after the item are refused.
+
+COSE key decoding refuses any algorithm the relying party did not offer, so a
+caller cannot downgrade the negotiation, and rejects RSA moduli below 2048
+bits.
+
+=== Notes
+
+* ES256 and RS256 are offered by default. ES256 covers Apple and Android
+  platform authenticators and most security keys; RS256 covers Windows Hello.
+  Offering only one shuts out an entire population of users.
+* The registration and authentication ceremonies are not implemented yet.
+* Attestation beyond `fmt: "none"` is out of scope for now.

@@ -1,0 +1,22 @@
+= webauthn
+:description: Bibliothèque WebAuthn (W3C niveau 3) côté partie de confiance pour Crystal : passkeys, décodage CBOR et COSE, vérification ES256 et RS256.
+
+Bibliothèque WebAuthn (W3C niveau 3) côté partie de confiance pour Crystal : passkeys, décodage CBOR et COSE, vérification ES256 et RS256.
+
+== Statut
+
+* *Version* : {page-component-display-version}
+* *Repo* : https://github.com/aloli-crystal/webauthn[aloli-crystal/webauthn]
+* *Licence* : MIT
+
+== Quickstart
+
+[source,crystal]
+----
+require "webauthn"
+
+# … exemple d'utilisation …
+----
+
+Pour les détails, voir xref:usage.adoc[Utilisation] ou
+xref:api.adoc[API].

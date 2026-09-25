@@ -1,0 +1,53 @@
+= Changelog
+:toc: left
+:toc-title: Versions
+
+Toutes les modifications notables de `aloli-crystal/webauthn`
+sont documentées ici. Le format suit
+https://keepachangelog.com/1.1.0/[Keep a Changelog] et le
+versioning suit https://semver.org/[SemVer]
+(3 chiffres pour création, 4 pour portage de gem Ruby).
+
+== v0.1.0 — 2026-09-25
+
+=== Ajouté
+
+* `WebAuthn::CBOR` — décodeur du sous-ensemble CBOR utilisé par WebAuthn
+  (RFC 8949) : entiers, chaînes d'octets et de texte, tableaux, tables et les
+  trois valeurs simples nommées. Les valeurs sont rendues sous forme de
+  `CBOR::Any`, une structure nommée dotée d'accesseurs à la manière de
+  `JSON::Any`, plutôt qu'un alias récursif.
+* `WebAuthn::COSE` — décodage des COSE_Key (RFC 8152) pour EC2
+  (ES256/384/512) et RSA (RS256/384/512), projetées sur les clés de `jose`,
+  avec vérification de signature. Les signatures ECDSA sont attendues en
+  ASN.1 DER, telles que les émettent les authentificateurs CTAP.
+
+=== Posture de sécurité
+
+Le décodeur CBOR analyse des entrées atteignables par un attaquant et se
+montre strict à dessein :
+
+* les longueurs indéfinies, les tags et les flottants sont refusés, pas
+  ignorés ;
+* une longueur déclarée supérieure à ce qui reste en entrée est refusée avant
+  toute allocation : une chaîne d'octets annonçant 4 Gio ne peut pas servir à
+  épuiser la mémoire ;
+* les clés de table en double sont refusées — elles permettent de montrer une
+  valeur à un analyseur et une autre au suivant ;
+* l'imbrication est plafonnée, pour qu'une charge hostile ne puisse pas
+  épuiser la pile ;
+* les octets excédentaires après l'élément sont refusés.
+
+Le décodage des clés COSE refuse tout algorithme que la partie de confiance
+n'a pas proposé, empêchant une négociation à la baisse, et rejette les
+modules RSA de moins de 2048 bits.
+
+=== Notes
+
+* ES256 et RS256 sont proposés par défaut. ES256 couvre les authentificateurs
+  de plate-forme Apple et Android ainsi que la plupart des clés de sécurité ;
+  RS256 couvre Windows Hello. N'en proposer qu'un exclut toute une population
+  d'utilisateurs.
+* Les cérémonies d'enregistrement et d'authentification ne sont pas encore
+  implémentées.
+* L'attestation au-delà de `fmt: "none"` est hors périmètre pour l'instant.

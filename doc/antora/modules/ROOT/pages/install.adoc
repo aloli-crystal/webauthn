@@ -1,0 +1,30 @@
+= Installation
+
+== Comme dépendance d'un autre shard
+
+Ajoutez à votre `shard.yml` :
+
+[source,yaml]
+----
+dependencies:
+  webauthn:
+    github: aloli-crystal/webauthn
+    version: "~> 0.1"
+----
+
+Puis :
+
+[source,shell]
+----
+shards install
+----
+
+== En local pour développer
+
+[source,shell]
+----
+git clone git@github.com:aloli-crystal/webauthn.git
+cd webauthn
+shards install
+crystal spec       # lancer les tests
+----

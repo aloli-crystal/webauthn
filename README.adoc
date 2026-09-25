@@ -1,0 +1,120 @@
+= aloli-crystal/webauthn
+:toc: left
+:toc-title: Contents
+
+WebAuthn (W3C Level 3) relying-party library for Crystal: passkeys, CBOR and COSE decoding, ES256 and RS256 verification.
+
+== Why
+
+A passkey leaves **no shared secret on the server**. The private key is held
+by the user's device — macOS Keychain, Windows Hello, a TPM, a security key —
+and unlocked by the device itself, by biometrics or the session password. All
+the server ever stores is a public key: a leak of the credential table yields
+nothing reusable. And because a signature is bound to the origin it was made
+for, it cannot be replayed against a phishing site.
+
+An authenticator with user verification required is therefore *already
+multi-factor in a single gesture*: possession of the device, plus the thing
+that unlocks it. Stacking a one-time code on top adds nothing.
+
+This shard implements the **relying party** — the server side. It does not
+talk to authenticators; the browser does that. It verifies what comes back.
+
+== What works today
+
+Work in progress. What is implemented and specced:
+
+[cols="1,3",options="header"]
+|===
+|Component |State
+
+|`WebAuthn::CBOR`
+|Decoder for the CBOR subset WebAuthn uses (RFC 8949). Strict by design: this
+parses attacker-reachable input, so indefinite lengths, tags, floats,
+duplicate map keys, over-long declared lengths and deep nesting are all
+refused rather than tolerated.
+
+|`WebAuthn::COSE`
+|COSE_Key decoding (RFC 8152) for EC2 and RSA, mapped onto
+https://github.com/aloli-crystal/jose[jose] keys, with signature
+verification. An algorithm the relying party did not offer is refused, so a
+caller cannot downgrade the negotiation.
+
+|Registration ceremony
+|Not yet.
+
+|Authentication ceremony
+|Not yet.
+|===
+
+Algorithms offered by default are **ES256 and RS256**. ES256 covers Apple and
+Android platform authenticators and most security keys; RS256 covers Windows
+Hello, which commonly enrols with it. Offering only one shuts out an entire
+population of users.
+
+Out of scope for now: attestation statement verification beyond `none` — this
+shard does not try to prove which make and model of authenticator was used,
+which is rarely what a relying party actually needs and carries privacy
+consequences.
+
+== Install
+
+[source,yaml]
+----
+dependencies:
+  webauthn:
+    github: aloli-crystal/webauthn
+    version: "~> 0.1"
+----
+
+== Quickstart
+
+[source,crystal]
+----
+require "webauthn"
+
+# A credential public key as the authenticator delivered it, in COSE form.
+key = WebAuthn::COSE.decode_key(cose_key_bytes)
+
+key.algorithm      # => Jose::JWS::Algorithm::ES256
+key.verify(signed_data, signature)  # => true / false
+
+# Restrict the algorithms you accept to the ones you offered.
+key = WebAuthn::COSE.decode_key(cose_key_bytes, [WebAuthn::COSE::ALG_ES256])
+----
+
+ECDSA signatures are taken in ASN.1 DER — which is what CTAP authenticators
+emit, not the fixed-width `r || s` pair that JWS itself uses.
+
+== Status
+
+* *Version* : see https://github.com/aloli-crystal/webauthn/releases[GitHub releases]
+* *Default branch* : `production`
+* *License* : MIT (see `LICENSE`)
+
+== Documentation
+
+* https://aloli-crystal.github.io/webauthn/[Antora doc site] (upcoming)
+* `CHANGELOG.adoc` — version history
+* `CHANGELOG.fr.adoc` — French version
+
+== ALOLI conventions
+
+This shard follows the
+https://github.com/aloli-crystal[aloli-crystal/*] ecosystem
+conventions:
+
+* `VERSION` constant read at compile-time from `shard.yml` —
+  cannot drift.
+* CLI accepts `webauthn help [<sub>]` (UX-standard equivalent
+  of `--help` + per-subcommand focus).
+* Default branch is `production` (never `main`).
+* SemVer 3-digit for original creations, 4-digit for ports of
+  Ruby gems.
+
+To start a new shard with these conventions, see
+https://github.com/aloli-crystal/shard-template[aloli-crystal/shard-template].
+
+== License
+
+MIT — see `LICENSE`.

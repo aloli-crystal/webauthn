@@ -1,0 +1,124 @@
+= aloli-crystal/webauthn
+:toc: left
+:toc-title: Sommaire
+
+Bibliothèque WebAuthn (W3C niveau 3) côté partie de confiance pour Crystal : passkeys, décodage CBOR et COSE, vérification ES256 et RS256.
+
+== Pourquoi
+
+Une passkey ne laisse **aucun secret partagé sur le serveur**. La clé privée
+est détenue par l'appareil de l'utilisateur — Trousseau macOS, Windows Hello,
+TPM, clé de sécurité — et déverrouillée par l'appareil lui-même, par
+biométrie ou par le mot de passe de session. Le serveur ne stocke qu'une clé
+publique : une fuite de la table des identifiants ne donne rien de
+réutilisable. Et comme la signature est liée à l'origine pour laquelle elle a
+été produite, elle ne peut pas être rejouée contre un site d'hameçonnage.
+
+Un authentificateur exigeant la vérification de l'utilisateur est donc *déjà
+multifacteur en un seul geste* : possession de l'appareil, plus ce qui le
+déverrouille. Y empiler un code à usage unique n'ajoute rien.
+
+Ce shard implémente la **partie de confiance** — le côté serveur. Il ne parle
+pas aux authentificateurs, c'est le navigateur qui s'en charge. Il vérifie ce
+qui revient.
+
+== Ce qui fonctionne aujourd'hui
+
+En cours. Ce qui est implémenté et couvert par des specs :
+
+[cols="1,3",options="header"]
+|===
+|Composant |État
+
+|`WebAuthn::CBOR`
+|Décodeur du sous-ensemble CBOR utilisé par WebAuthn (RFC 8949). Strict par
+conception : il analyse des entrées atteignables par un attaquant, donc les
+longueurs indéfinies, les tags, les flottants, les clés de map en double, les
+longueurs déclarées excessives et les imbrications profondes sont refusés
+plutôt que tolérés.
+
+|`WebAuthn::COSE`
+|Décodage des COSE_Key (RFC 8152) pour EC2 et RSA, projetées sur les clés de
+https://github.com/aloli-crystal/jose[jose], avec vérification de signature.
+Un algorithme que la partie de confiance n'a pas proposé est refusé : un
+appelant ne peut pas forcer une négociation à la baisse.
+
+|Cérémonie d'enregistrement
+|Pas encore.
+
+|Cérémonie d'authentification
+|Pas encore.
+|===
+
+Les algorithmes proposés par défaut sont **ES256 et RS256**. ES256 couvre les
+authentificateurs de plate-forme Apple et Android ainsi que la plupart des
+clés de sécurité ; RS256 couvre Windows Hello, qui s'enrôle couramment avec.
+N'en proposer qu'un exclut toute une population d'utilisateurs.
+
+Hors périmètre pour l'instant : la vérification des attestations au-delà de
+`none`. Ce shard ne cherche pas à prouver la marque et le modèle de
+l'authentificateur, ce dont une partie de confiance a rarement réellement
+besoin, et qui a des conséquences sur la vie privée.
+
+== Installation
+
+[source,yaml]
+----
+dependencies:
+  webauthn:
+    github: aloli-crystal/webauthn
+    version: "~> 0.1"
+----
+
+== Démarrage rapide
+
+[source,crystal]
+----
+require "webauthn"
+
+# Une clé publique d'identifiant telle que l'authentificateur l'a livrée,
+# sous forme COSE.
+key = WebAuthn::COSE.decode_key(cose_key_bytes)
+
+key.algorithm      # => Jose::JWS::Algorithm::ES256
+key.verify(signed_data, signature)  # => true / false
+
+# Restreindre les algorithmes acceptés à ceux que vous avez proposés.
+key = WebAuthn::COSE.decode_key(cose_key_bytes, [WebAuthn::COSE::ALG_ES256])
+----
+
+Les signatures ECDSA sont attendues en ASN.1 DER — ce qu'émettent les
+authentificateurs CTAP, et non la paire `r || s` à largeur fixe qu'utilise
+JWS lui-même.
+
+== Statut
+
+* *Version* : voir https://github.com/aloli-crystal/webauthn/releases[releases GitHub]
+* *Branche par défaut* : `production`
+* *Licence* : MIT (voir `LICENSE`)
+
+== Documentation
+
+* https://aloli-crystal.github.io/webauthn/[Site documentaire Antora] (à venir)
+* `CHANGELOG.fr.adoc` — historique des versions
+* `CHANGELOG.adoc` — version anglaise
+
+== Conventions ALOLI
+
+Ce shard suit les conventions de l'écosystème
+https://github.com/aloli-crystal[aloli-crystal/*] :
+
+* Constante `VERSION` lue au compile-time depuis `shard.yml` —
+  pas de désynchro possible.
+* CLI : `webauthn help [<sub>]` (équivalent UX standard de
+  `--help` + focus par sous-commande).
+* Branche par défaut `production` (pas `main`).
+* Versioning SemVer 3-chiffres pour création, 4-chiffres pour
+  portage de gem Ruby.
+
+Pour démarrer un nouveau shard avec ces conventions :
+https://github.com/aloli-crystal/shard-template[aloli-crystal/shard-template].
+
+== Licence
+
+MIT — voir `LICENSE`.

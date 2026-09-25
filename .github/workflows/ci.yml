@@ -1,0 +1,58 @@
+name: CI
+on:
+  push:
+    branches: [production]
+  pull_request:
+    branches: [production]
+
+jobs:
+  # NB : la dépendance `jose` est déclarée en `~> 0.2`. Tant que cette
+  # version n'est pas publiée sur aloli-crystal/jose, `shards install`
+  # échoue ici. En local, elle est résolue par `shard.override.yml`
+  # (non versionné) vers le checkout voisin.
+  spec:
+    runs-on: ubuntu-latest
+    container:
+      image: crystallang/crystal:1.19.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache shards
+        uses: actions/cache@v4
+        with:
+          path: lib
+          key: ${{ runner.os }}-shards-${{ hashFiles('shard.lock', 'shard.yml') }}
+          restore-keys: ${{ runner.os }}-shards-
+
+      - name: Install dependencies
+        run: shards install
+
+      - name: Format check
+        run: crystal tool format --check src/ spec/
+
+      - name: Run specs
+        run: crystal spec --error-on-warnings
+
+      - name: Run ameba
+        run: ./bin/ameba
+
+  # Vérifie que la VERSION lue au compile-time est cohérente avec
+  # shard.yml. La règle existe via le spec, mais on la double ici
+  # pour échouer tôt si jamais le macro `read_file` régresse.
+  version-coherence:
+    runs-on: ubuntu-latest
+    container:
+      image: crystallang/crystal:1.19.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: shards install
+      - name: Compile-time VERSION matches shard.yml
+        run: |
+          YML_VERSION=$(grep '^version:' shard.yml | awk '{print $2}')
+          BIN_VERSION=$(crystal eval 'require "./src/webauthn"; puts WebAuthn::VERSION')
+          if [ "$YML_VERSION" != "$BIN_VERSION" ]; then
+            echo "VERSION drift: shard.yml=$YML_VERSION  module=$BIN_VERSION"
+            exit 1
+          fi
+          echo "VERSION OK: $YML_VERSION"
