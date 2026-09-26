@@ -4,6 +4,10 @@ require "./webauthn/version"
 require "./webauthn/errors"
 require "./webauthn/cbor"
 require "./webauthn/cose"
+require "./webauthn/authenticator_data"
+require "./webauthn/client_data"
+require "./webauthn/credential"
+require "./webauthn/relying_party"
 
 # WebAuthn (W3C Web Authentication, Level 3) for the relying party — the
 # server side.

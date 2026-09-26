@@ -40,11 +40,19 @@ https://github.com/aloli-crystal/jose[jose] keys, with signature
 verification. An algorithm the relying party did not offer is refused, so a
 caller cannot downgrade the negotiation.
 
+|`WebAuthn::AuthenticatorData`
+|The binary record the authenticator signs over (§6.1), including attested
+credential data and its variable-length COSE key.
+
+|`WebAuthn::ClientData`
+|What the browser vouches for (§5.8.1): ceremony type, challenge and origin.
+
 |Registration ceremony
-|Not yet.
+|`RelyingParty#verify_registration` (§7.1). Attestation `none` only.
 
 |Authentication ceremony
-|Not yet.
+|`RelyingParty#verify_authentication` (§7.2), including the signature counter
+check.
 |===
 
 Algorithms offered by default are **ES256 and RS256**. ES256 covers Apple and
@@ -73,18 +81,47 @@ dependencies:
 ----
 require "webauthn"
 
-# A credential public key as the authenticator delivered it, in COSE form.
-key = WebAuthn::COSE.decode_key(cose_key_bytes)
+# The RP ID is effectively permanent: change it and every passkey already
+# registered stops being offered. Set it to the registrable domain suffix
+# shared by every instance that should accept the same key.
+rp = WebAuthn::RelyingParty.new(
+  id: "noalyss.example",
+  origins: ["https://client1.noalyss.example"]
+)
 
-key.algorithm      # => Jose::JWS::Algorithm::ES256
-key.verify(signed_data, signature)  # => true / false
+# --- Registration -----------------------------------------------------
+challenge = WebAuthn.generate_challenge   # store it server-side, single use
 
-# Restrict the algorithms you accept to the ones you offered.
-key = WebAuthn::COSE.decode_key(cose_key_bytes, [WebAuthn::COSE::ALG_ES256])
+credential = rp.verify_registration(
+  attestation_object: params["attestationObject"],
+  client_data_json: params["clientDataJSON"],
+  challenge: challenge
+)
+# Persist credential.id, its public key, and credential.sign_count.
+
+# --- Authentication ---------------------------------------------------
+challenge = WebAuthn.generate_challenge
+
+assertion = rp.verify_authentication(
+  credential: stored_credential,
+  authenticator_data: params["authenticatorData"],
+  client_data_json: params["clientDataJSON"],
+  signature: params["signature"],
+  challenge: challenge
+)
+# Persist assertion.sign_count — skipping that turns the cloned-authenticator
+# check into a no-op.
 ----
 
-ECDSA signatures are taken in ASN.1 DER — which is what CTAP authenticators
-emit, not the fixed-width `r || s` pair that JWS itself uses.
+Both ceremonies raise `WebAuthn::VerificationError` rather than returning a
+boolean, so a caller cannot forget to check the result. A suspected clone
+raises `WebAuthn::ClonedAuthenticatorError`, which is worth distinguishing:
+the signature *was* valid, so it is not a forgery — the credential exists in
+two places, and the user should be told.
+
+User verification is required by default. That is what makes a passkey
+multi-factor on its own; pass `user_verification:` to relax it.
+
 
 == Status
 

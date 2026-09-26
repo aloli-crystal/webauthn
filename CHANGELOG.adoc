@@ -19,6 +19,15 @@ versioning follows https://semver.org/[SemVer]
 * `WebAuthn::COSE` — COSE_Key decoding (RFC 8152) for EC2 (ES256/384/512) and
   RSA (RS256/384/512), mapped onto `jose` keys, with signature verification.
   ECDSA signatures are taken in ASN.1 DER, as CTAP authenticators emit them.
+* `WebAuthn::AuthenticatorData` — the binary record the authenticator signs
+  over (§6.1), including attested credential data and the variable-length
+  COSE key it ends with.
+* `WebAuthn::ClientData` — ceremony type, challenge and origin (§5.8.1). The
+  hash is taken over the bytes as received, never a re-serialisation: two JSON
+  encoders disagree on key order and escaping, and the signature would not
+  verify.
+* `WebAuthn::RelyingParty#verify_registration` (§7.1) and
+  `#verify_authentication` (§7.2), plus `WebAuthn.generate_challenge`.
 
 === Security posture
 
@@ -36,10 +45,33 @@ COSE key decoding refuses any algorithm the relying party did not offer, so a
 caller cannot downgrade the negotiation, and rejects RSA moduli below 2048
 bits.
 
+The ceremonies:
+
+* raise rather than return a boolean, so a caller cannot forget to check;
+* match origins against an exact allowlist — the check that makes a passkey
+  phishing-resistant;
+* compare challenges in constant time;
+* require user verification by default, which is what makes a passkey
+  multi-factor on its own;
+* refuse an assertion that smuggles in attested credential data;
+* refuse a backed-up credential that is not backup eligible, and backup
+  eligibility changing after registration;
+* accept attestation `none` only, and refuse a `none` statement that is not
+  empty.
+
 === Notes
 
 * ES256 and RS256 are offered by default. ES256 covers Apple and Android
   platform authenticators and most security keys; RS256 covers Windows Hello.
   Offering only one shuts out an entire population of users.
-* The registration and authentication ceremonies are not implemented yet.
-* Attestation beyond `fmt: "none"` is out of scope for now.
+* The signature counter check tolerates a counter that stays at zero. Every
+  Apple authenticator reports zero always; enforcing a strictly increasing
+  counter would lock out every macOS and iOS user. A counter that goes
+  backwards raises `ClonedAuthenticatorError`, kept distinct from a
+  verification failure because the signature *was* valid.
+* Attestation beyond `fmt: "none"` is out of scope. Proving the make and model
+  of an authenticator is rarely what a relying party needs, ties a user's
+  hardware to their account, and is worse done badly than not at all.
+* Every critical check was mutation-tested: disabling the origin, user
+  presence, user verification, RP ID hash, signature counter or signature
+  verification turns specs red.

@@ -21,6 +21,15 @@ versioning suit https://semver.org/[SemVer]
   (ES256/384/512) et RSA (RS256/384/512), projetées sur les clés de `jose`,
   avec vérification de signature. Les signatures ECDSA sont attendues en
   ASN.1 DER, telles que les émettent les authentificateurs CTAP.
+* `WebAuthn::AuthenticatorData` — le bloc binaire que signe l'authentificateur
+  (§6.1), y compris les données d'identifiant attestées et la clé COSE de
+  longueur variable qui les termine.
+* `WebAuthn::ClientData` — type de cérémonie, défi et origine (§5.8.1).
+  L'empreinte est calculée sur les octets tels que reçus, jamais sur une
+  re-sérialisation : deux encodeurs JSON divergent sur l'ordre des clés et
+  l'échappement, et la signature ne vérifierait plus.
+* `WebAuthn::RelyingParty#verify_registration` (§7.1) et
+  `#verify_authentication` (§7.2), ainsi que `WebAuthn.generate_challenge`.
 
 === Posture de sécurité
 
@@ -42,12 +51,37 @@ Le décodage des clés COSE refuse tout algorithme que la partie de confiance
 n'a pas proposé, empêchant une négociation à la baisse, et rejette les
 modules RSA de moins de 2048 bits.
 
+Les cérémonies :
+
+* lèvent au lieu de renvoyer un booléen, pour qu'un appelant ne puisse pas
+  oublier de vérifier ;
+* confrontent l'origine à une liste d'autorisation exacte — le contrôle qui
+  rend une passkey résistante à l'hameçonnage ;
+* comparent les défis en temps constant ;
+* exigent la vérification de l'utilisateur par défaut, ce qui rend une passkey
+  multifacteur à elle seule ;
+* refusent une assertion qui glisserait des données d'identifiant attestées ;
+* refusent un identifiant sauvegardé qui n'est pas éligible à la sauvegarde,
+  ainsi qu'une éligibilité qui changerait après l'enregistrement ;
+* n'acceptent que l'attestation `none`, et refusent un énoncé `none` non
+  vide.
+
 === Notes
 
 * ES256 et RS256 sont proposés par défaut. ES256 couvre les authentificateurs
   de plate-forme Apple et Android ainsi que la plupart des clés de sécurité ;
   RS256 couvre Windows Hello. N'en proposer qu'un exclut toute une population
   d'utilisateurs.
-* Les cérémonies d'enregistrement et d'authentification ne sont pas encore
-  implémentées.
-* L'attestation au-delà de `fmt: "none"` est hors périmètre pour l'instant.
+* Le contrôle du compteur de signature tolère un compteur qui reste à zéro.
+  Tous les authentificateurs Apple renvoient toujours zéro ; exiger un
+  compteur strictement croissant exclurait chaque utilisateur macOS et iOS.
+  Un compteur qui recule lève `ClonedAuthenticatorError`, distinct d'un échec
+  de vérification parce que la signature *était* valide.
+* L'attestation au-delà de `fmt: "none"` est hors périmètre. Prouver la marque
+  et le modèle d'un authentificateur est rarement ce dont une partie de
+  confiance a besoin, lie le matériel de l'utilisateur à son compte, et vaut
+  mieux ne pas être fait que mal fait.
+* Chaque contrôle critique a été éprouvé par mutation : neutraliser l'origine,
+  la présence utilisateur, la vérification utilisateur, l'empreinte du RP ID,
+  le compteur de signature ou la vérification de signature fait rougir les
+  specs.
