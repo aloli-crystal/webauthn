@@ -28,9 +28,3 @@ Thumbs.db
 
 # surcharge de dépendances pour le développement local
 shard.override.yml
-
-# TEMPORAIRE — à retirer dès que jose v0.2.0 est publié sur
-# aloli-crystal/jose. Tant que la dépendance est résolue via
-# shard.override.yml (path: ../jose), le lock enregistre ce chemin local et
-# n'est utilisable par personne d'autre, CI comprise.
-/shard.lock
