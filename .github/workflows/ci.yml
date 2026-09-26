@@ -34,7 +34,11 @@ jobs:
         run: crystal spec --error-on-warnings
 
       - name: Run ameba
-        run: ./bin/ameba
+        # ameba 1.6 fournissait un `postinstall` qui compilait `bin/ameba` dans
+        # le projet consommateur ; la 1.7 l'a supprimé, comme son TODO
+        # l'annonçait. On l'invoque donc depuis ses sources, ce qui fonctionne
+        # quelle que soit la version résolue.
+        run: crystal run lib/ameba/bin/ameba.cr -- src spec
 
   # Vérifie que la VERSION lue au compile-time est cohérente avec
   # shard.yml. La règle existe via le spec, mais on la double ici
