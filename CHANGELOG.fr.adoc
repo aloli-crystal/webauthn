@@ -8,6 +8,14 @@ https://keepachangelog.com/1.1.0/[Keep a Changelog] et le
 versioning suit https://semver.org/[SemVer]
 (3 chiffres pour création, 4 pour portage de gem Ruby).
 
+== v0.1.1 — 2026-10-16
+
+=== Modifié
+
+* `jose` épinglé à `~> 0.2.1` : compatibilité avec Crystal 1.22, qui définit
+  désormais lui-même les constantes GCM de `LibCrypto` (jose 0.2.0 les
+  redéfinissait, « already initialized constant »). Aucun changement d'API.
+
 == v0.1.0 — 2026-09-25
 
 === Ajouté

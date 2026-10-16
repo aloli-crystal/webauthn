@@ -1,5 +1,5 @@
 name: webauthn
-version: 0.1.0
+version: 0.1.1
 
 description: |
   WebAuthn (Web Authentication, W3C Level 3) relying-party library for
@@ -17,7 +17,7 @@ license: MIT
 dependencies:
   jose:
     github: aloli-crystal/jose
-    version: "~> 0.2"
+    version: "~> 0.2.1"
 
 development_dependencies:
   ameba:

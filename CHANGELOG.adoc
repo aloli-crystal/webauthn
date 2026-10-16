@@ -8,6 +8,14 @@ https://keepachangelog.com/1.1.0/[Keep a Changelog] and
 versioning follows https://semver.org/[SemVer]
 (3-digit for creations, 4-digit for ports of Ruby gems).
 
+== v0.1.1 — 2026-10-16
+
+=== Changed
+
+* `jose` pinned to `~> 0.2.1`: compatibility with Crystal 1.22, which now
+  defines the GCM constants of `LibCrypto` itself (jose 0.2.0 redefined them,
+  « already initialized constant »). No API change for this shard.
+
 == v0.1.0 — 2026-09-25
 
 === Added
