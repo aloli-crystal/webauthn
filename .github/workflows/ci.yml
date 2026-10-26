@@ -13,7 +13,7 @@ jobs:
   spec:
     runs-on: ubuntu-latest
     container:
-      image: crystallang/crystal:1.19.1
+      image: crystallang/crystal:1.21.1.1
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +46,7 @@ jobs:
   version-coherence:
     runs-on: ubuntu-latest
     container:
-      image: crystallang/crystal:1.19.1
+      image: crystallang/crystal:1.21.1.1
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
